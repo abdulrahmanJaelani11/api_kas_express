@@ -4,7 +4,7 @@ const db = require("./database");
 const cors = require("cors");
 const port = 3001;
 const moment = require("moment");
-const hostname = "192.168.19.197";
+const hostname = "192.168.19.88";
 // const hostname = "localhost";
 
 app.use(express.json());
