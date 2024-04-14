@@ -201,11 +201,17 @@ app.get("/get-riwayat", (req, res) => {
 
 // DASHBOARD
 app.get("/get-saldo", (req, res) => {
-  const sql_pemasukan = `SELECT SUM(nominal) as saldo FROM trans_pembayaran WHERE tipe_transaksi = 'pemasukan'`;
-  const sql_pengeluaran = `SELECT SUM(nominal) as saldo FROM trans_pembayaran WHERE tipe_transaksi = 'pengeluaran'`;
-  db.query(sql_pemasukan, (err, result) => {
+  const sql = `SELECT tbl.*, (tbl.saldo_pemasukan - tbl.saldo_pengeluaran) as total FROM (
+    SELECT
+      SUM( nominal ) AS saldo_pemasukan,
+      ( SELECT SUM( nominal ) FROM trans_pembayaran WHERE tipe_transaksi = 'pengeluaran' ) AS saldo_pengeluaran 
+    FROM
+      trans_pembayaran 
+    WHERE
+      tipe_transaksi = 'pemasukan') as tbl`;
+  db.query(sql, (err, result) => {
     if (err) throw err;
-    res.json(result[0]);
+    res.json(result[0].total);
   });
 });
 
