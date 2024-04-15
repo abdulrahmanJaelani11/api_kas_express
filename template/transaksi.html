@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Transaksi</title>
+    <style>
+      table {
+        width: 100%;
+        border: 1px solid black;
+        border-collapse: collapse;
+      }
+      table,
+      tr,
+      th,
+      td {
+        padding: 5px;
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Data Transaksi Anggota Tunas Muda</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Nama Anggota</th>
+          <th>Tipe Transaksi</th>
+          <th>Nominal</th>
+          <th>Tanggal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each dt_transaksi.data}}
+        <tr>
+          <td style="text-align: center">{{ this.nomor }}</td>
+          <td>{{ this.nama_anggota }}</td>
+          <td style="text-align: center">{{ this.tipe_transaksi }}</td>
+          <td style="text-align: end">{{ this.nominal }}</td>
+          <td style="text-align: center">{{ this.created_date }}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+
+    <table style="margin-top: 20px">
+      <thead>
+        <tr>
+          <th>Total Pemasukan</th>
+          <th>Total Pengeluaran</th>
+          <th>Total Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="text-align: end">{{ dt_transaksi.tot_pemasukan }}</td>
+          <td style="text-align: end">{{ dt_transaksi.tot_pengeluaran }}</td>
+          <td style="text-align: end">{{ dt_transaksi.tot_saldo }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>

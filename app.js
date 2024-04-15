@@ -4,7 +4,10 @@ const db = require("./database");
 const cors = require("cors");
 const port = 3001;
 const moment = require("moment");
-const hostname = "192.168.19.88";
+const hostname = "192.168.216.88";
+const PDFDocument = require("pdfkit");
+const pdf = require("pdf-creator-node");
+const fs = require("fs");
 // const hostname = "localhost";
 
 app.use(express.json());
@@ -287,6 +290,106 @@ app.get(`/get-pengeluaran`, (req, res) => {
     console.log(result);
     res.status(200).json(result[0]);
   });
+});
+
+app.get("/generate-pdf", (req, res) => {
+  const sql = `SELECT b.nama as nama_anggota, a.nominal, a.created_date, a.tipe_transaksi
+  FROM trans_pembayaran a 
+  LEFT JOIN ref_anggota b ON a.anggota_id = b.id ORDER BY a.id DESC`;
+
+  db.query(sql, (err, result) => {
+    if (err) throw err;
+    // Read HTML Template
+    let data = {
+      data: [],
+      tot_pemasukan: 0,
+      tot_pengeluaran: 0,
+      tot_saldo: 0,
+    };
+    let tot_pemasukan = 0;
+    let tot_pengeluaran = 0;
+    let tot_saldo = 0;
+    for (let i = 0; i < result.length; i++) {
+      data.data.push({
+        nomor: i + 1,
+        nama_anggota: result[i].nama_anggota,
+        tipe_transaksi: result[i].tipe_transaksi,
+        nominal: parseInt(result[i].nominal).toLocaleString("id-ID", {
+          style: "currency",
+          currency: "IDR",
+        }),
+        created_date: moment(result[i].created_date).format(
+          "YYYY-MM-DD HH:mm:ss"
+        ),
+      });
+
+      if (result[i].tipe_transaksi == "pemasukan")
+        tot_pemasukan += parseInt(result[i].nominal);
+
+      if (result[i].tipe_transaksi == "pengeluaran")
+        tot_pengeluaran += parseInt(result[i].nominal);
+    }
+
+    data.tot_pemasukan = tot_pemasukan.toLocaleString("id-ID", {
+      style: "currency",
+      currency: "IDR",
+    });
+    data.tot_pengeluaran = tot_pengeluaran.toLocaleString("id-ID", {
+      style: "currency",
+      currency: "IDR",
+    });
+    data.tot_saldo = (tot_pemasukan - tot_pengeluaran).toLocaleString("id-ID", {
+      style: "currency",
+      currency: "IDR",
+    });
+
+    var html = fs.readFileSync("./template/transaksi.html", "utf8");
+    let path = `./file_temp`;
+    let file_name = `output.pdf`;
+    let fullpath = path + "/" + file_name;
+
+    var options = {
+      format: "A4",
+      orientation: "portrait",
+      border: "10mm",
+      header: {
+        height: "5mm",
+        // contents:
+        // '<div style="text-align: center;">Author: Abdul Rahman Jaelani</div>',
+      },
+      // footer: {
+      //   height: "28mm",
+      //   contents: {
+      //     first: "Cover page",
+      //     2: "Second page", // Any page number is working. 1-based index
+      //     default:
+      //       '<span style="color: #444;">{{page}}</span>/<span>{{pages}}</span>', // fallback value
+      //     last: "Last Page",
+      //   },
+      // },
+    };
+
+    var document = {
+      html: html,
+      data: {
+        dt_transaksi: data,
+      },
+      path: fullpath,
+      type: "",
+    };
+    const proses = pdf.create(document, options);
+    if (proses) {
+      res.download(fullpath, file_name, (err) => {
+        if (err) {
+          console.log(err);
+        } else {
+          fs.unlinkSync(fullpath);
+        }
+      });
+    }
+  });
+
+  // Menambahkan konten ke PDF
 });
 
 app.listen(port, hostname, () => {
