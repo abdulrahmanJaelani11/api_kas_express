@@ -4,10 +4,11 @@ const db = require("./database");
 const cors = require("cors");
 const port = 3001;
 const moment = require("moment");
+require("moment/locale/id");
 const PDFDocument = require("pdfkit");
 const pdf = require("pdf-creator-node");
 const fs = require("fs");
-const hostname = "192.168.216.88";
+const hostname = "192.168.0.134";
 // const hostname = "localhost";
 
 app.use(express.json());
@@ -178,9 +179,17 @@ app.get(`/get-pembayaran-det/:id/:tahun`, (req, res) => {
   db.query(sql, (err, result) => {
     if (err) throw err;
     for (let i = 0; i < result.length; i++) {
-      result[i].created_date = moment(result.created_date).format(
-        "YYYY-MM-DD HH:mm:ss"
-      );
+      result[i].created_date =
+        result[i].created_date != null
+          ? moment(result[i].created_date).format("dddd, D MMMM YYYY HH:mm:ss")
+          : "-";
+      result[i].nominal =
+        result[i].nominal != null
+          ? parseInt(result[i].nominal).toLocaleString("id-ID", {
+              style: "currency",
+              currency: "IDR",
+            })
+          : "Rp 0";
     }
     res.status(200).json(result);
   });
@@ -195,7 +204,7 @@ app.get("/get-riwayat", (req, res) => {
     if (err) throw err;
     for (let i = 0; i < result.length; i++) {
       result[i].created_date = moment(result[i].created_date).format(
-        "YYYY-MM-DD HH:mm:ss"
+        "dddd, D MMMM YYYY"
       );
     }
     res.json(result);
@@ -227,8 +236,26 @@ app.get("/get-transaksi-hari-ini", (req, res) => {
     if (err) throw err;
     for (let i = 0; i < result.length; i++) {
       result[i].created_date = moment(result[i].created_date).format(
-        "YYYY-MM-DD HH:mm:ss"
+        "dddd, D MMMM YYYY"
       );
+    }
+    res.json(result);
+  });
+});
+
+app.get("/get-detail-transaksi", (req, res) => {
+  const sql = `SELECT 
+  (SELECT SUM(x.nominal) FROM trans_pembayaran x
+  WHERE x.tipe_transaksi = 'pemasukan' AND DATE(x.created_date) = DATE(a.created_date)) as pemasukan,
+  (SELECT SUM(nominal) FROM trans_pembayaran y
+  WHERE y.tipe_transaksi = 'pengeluaran' AND DATE(y.created_date) = DATE(a.created_date)) as pengeluaran,
+  DATE(a.created_date) as date
+  FROM trans_pembayaran a GROUP BY DATE(a.created_date) ORDER BY DATE(created_date) DESC`;
+
+  db.query(sql, (err, result) => {
+    if (err) throw err;
+    for (let i = 0; i < result.length; i++) {
+      result[i].tgl = moment(result[i].date).format("dddd, D MMMM YYYY");
     }
     res.json(result);
   });
@@ -319,7 +346,7 @@ app.get("/generate-pdf", (req, res) => {
           currency: "IDR",
         }),
         created_date: moment(result[i].created_date).format(
-          "YYYY-MM-DD HH:mm:ss"
+          "dddd, D MMMM YYYY"
         ),
       });
 
