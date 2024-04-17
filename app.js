@@ -329,14 +329,15 @@ app.get("/generate-pdf", (req, res) => {
     let path = `./file_temp`;
     let file_name = `output.pdf`;
     let fullpath = path + "/" + file_name;
-    res.download(fullpath, file_name, (err) => {
-      if (err) {
-        console.log(err);
-      }
-      // else {
-      //   fs.unlinkSync(fullpath);
-      // }
-    });
+    res.json({ fullpath });
+    // res.download(fullpath, file_name, (err) => {
+    //   if (err) {
+    //     console.log(err);
+    //   }
+    // else {
+    //   fs.unlinkSync(fullpath);
+    // }
+    // });
     // Read HTML Template
     // let data = {
     //   data: [],
