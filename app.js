@@ -332,9 +332,10 @@ app.get("/generate-pdf", (req, res) => {
     res.download(fullpath, file_name, (err) => {
       if (err) {
         console.log(err);
-      } else {
-        fs.unlinkSync(fullpath);
       }
+      // else {
+      //   fs.unlinkSync(fullpath);
+      // }
     });
     // Read HTML Template
     // let data = {
