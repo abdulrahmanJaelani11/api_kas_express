@@ -30,7 +30,6 @@ app.get("/get-status/:id", (req, res) => {
   let query = `SELECT * FROM ref_status WHERE id = ${req.params.id}`;
   db.query(query, (err, results) => {
     if (err) throw err;
-    console.log(results);
     res.json(results[0]);
   });
 });
@@ -44,7 +43,7 @@ app.put("/status/:id", (req, res) => {
 
   db.query(query, values, (err, results) => {
     if (err) throw err;
-    res.status(201).json({ status: 200, message: "Status berhasil diupdate" });
+    res.json({ status: 200, message: "Status berhasil diupdate" });
   });
 });
 
@@ -57,7 +56,7 @@ app.post("/status", (req, res) => {
 
   db.query(query, values, (err, results) => {
     if (err) throw err;
-    res.status(201).json({
+    res.json({
       status: 200,
       message: "Status berhasil menambahkan data status",
     });
@@ -197,9 +196,12 @@ app.get(`/get-pembayaran-det/:id/:tahun`, (req, res) => {
 
 // RIWAYAT
 app.get("/get-riwayat", (req, res) => {
-  const query = `SELECT b.nama as nama_anggota, a.nominal, a.created_date, a.tipe_transaksi
+  const query = `SELECT b.nama as nama_anggota, a.nominal, a.created_date, a.tipe_transaksi, c.bulan, d.tahun
   FROM trans_pembayaran a 
-  LEFT JOIN ref_anggota b ON a.anggota_id = b.id ORDER BY a.id DESC`;
+  LEFT JOIN ref_anggota b ON a.anggota_id = b.id 
+  LEFT JOIN ref_bulan c ON a.bulan_id = c.id
+  LEFT JOIN ref_tahun d ON a.tahun_id = d.id
+  ORDER BY a.id DESC`;
   db.query(query, (err, result) => {
     if (err) throw err;
     for (let i = 0; i < result.length; i++) {
@@ -228,9 +230,11 @@ app.get("/get-saldo", (req, res) => {
 });
 
 app.get("/get-transaksi-hari-ini", (req, res) => {
-  const query = `SELECT a.id, b.nama as nama_anggota, a.nominal, a.tipe_transaksi, a.created_date 
+  const query = `SELECT a.id, b.nama as nama_anggota, a.nominal, a.tipe_transaksi, a.created_date, c.bulan, d.tahun 
   FROM trans_pembayaran a 
   LEFT JOIN ref_anggota b ON a.anggota_id = b.id
+  LEFT JOIN ref_bulan c ON a.bulan_id = c.id
+  LEFT JOIN ref_tahun d ON a.tahun_id = d.id
   ORDER BY a.id DESC LIMIT 5`;
   db.query(query, (err, result) => {
     if (err) throw err;
@@ -304,7 +308,6 @@ app.get(`/get-pemasukan`, (req, res) => {
   const sql = `SELECT SUM(nominal) as pemasukan FROM trans_pembayaran WHERE DATE(created_date) = CURRENT_DATE() AND tipe_transaksi = 'pemasukan'`;
   db.query(sql, (err, result) => {
     if (err) throw err;
-    console.log(result);
     res.status(200).json(result[0]);
   });
 });
@@ -314,7 +317,6 @@ app.get(`/get-pengeluaran`, (req, res) => {
   const sql = `SELECT SUM(nominal) as pengeluaran FROM trans_pembayaran WHERE DATE(created_date) = CURRENT_DATE() AND tipe_transaksi = 'pengeluaran'`;
   db.query(sql, (err, result) => {
     if (err) throw err;
-    console.log(result);
     res.status(200).json(result[0]);
   });
 });
@@ -332,7 +334,6 @@ app.get("/generate-pdf", (req, res) => {
     res.json({ fullpath });
     // res.download(fullpath, file_name, (err) => {
     //   if (err) {
-    //     console.log(err);
     //   }
     // else {
     //   fs.unlinkSync(fullpath);
@@ -419,7 +420,6 @@ app.get("/generate-pdf", (req, res) => {
     // if (proses) {
     //   res.download(fullpath, file_name, (err) => {
     //     if (err) {
-    //       console.log(err);
     //     } else {
     //       fs.unlinkSync(fullpath);
     //     }
@@ -430,7 +430,32 @@ app.get("/generate-pdf", (req, res) => {
   // Menambahkan konten ke PDF
 });
 
+// GANTI PASSWORD
+app.post(`/ganti-password/:id`, (req, res) => {
+  const id = req.params.id;
+  const { password_lama, password_baru } = req.body;
+  const sql_cek = `SELECT * FROM sec_user WHERE id = ${id}`;
+  const sql = `UPDATE sec_user SET password = ? WHERE id = ?`;
+  const values = [password_baru, id];
+  db.query(sql_cek, (err, result) => {
+    if (err) throw err;
+    if (result[0].password == password_lama) {
+      db.query(sql, values, (err, result) => {
+        if (err) throw err;
+        res.json({
+          status: 200,
+          message: `Berhasil Mengubah password, silahkan login kembali menggunakan password baru anda`,
+        });
+      });
+    } else {
+      res.json({
+        status: 400,
+        message: `Maaf, password saat ini yang anda masukan salah, silahkan coba lagi`,
+      });
+    }
+  });
+});
+
 app.listen(port, hostname, () => {
-  //   console.log(`Example app listening on port ${port}`);
   console.log(`Server berjalan di http://${hostname}:${port}/`);
 });
