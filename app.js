@@ -170,6 +170,57 @@ app.post("/pembayaran", (req, res) => {
   });
 });
 
+app.post("/pembayaran-sekaligus", (req, res) => {
+  let { anggota_id, tahun_id, tot_tagihan } = req.body;
+  let is_err = false;
+  const sql_cek = `SELECT tbl.* FROM (SELECT a.id, a.bulan, b.nominal FROM ref_bulan a
+    LEFT JOIN trans_pembayaran b ON b.bulan_id = a.id AND b.anggota_id = ${anggota_id} AND b.tahun_id = ${tahun_id}) as tbl
+    WHERE tbl.nominal IS NULL`;
+
+  const query =
+    "INSERT INTO trans_pembayaran (anggota_id, tahun_id, bulan_id, tipe_transaksi, nominal, status, created_date, keterangan) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+  let today = moment().format("YYYY-MM-DD HH:mm:ss");
+
+  let dt_anggota;
+  db.query(sql_cek, (err, result) => {
+    if (err) throw err;
+
+    for (let i = 0; i < result.length; i++) {
+      let values = [
+        parseInt(anggota_id),
+        tahun_id,
+        result[i].id,
+        "Pemasukan",
+        parseInt(15000),
+        1,
+        today,
+        "keterangan",
+      ];
+
+      db.query(query, values, (err, result) => {
+        if (err) {
+          is_err = true;
+        }
+      });
+
+      values = [];
+    }
+
+    // dt_anggota = result[0];
+    if (!is_err) {
+      res.status(200).json({
+        status: 200,
+        message: "Berhasil menyimpan data pembayaran",
+      });
+    } else {
+      res.status(200).json({
+        status: 400,
+        message: `Anggota dengan nama ${dt_anggota.nama} telah membayar uang kas tahun ${dt_anggota.tahun}, bulan ${dt_anggota.bulan} sebesar ${dt_anggota.nominal}`,
+      });
+    }
+  });
+});
+
 app.get(`/get-pembayaran-det/:id/:tahun`, (req, res) => {
   const sql = `SELECT a.*, b.nominal, b.created_date, c.tahun FROM ref_bulan a 
   LEFT JOIN trans_pembayaran b ON a.id = b.bulan_id AND b.anggota_id = ${req.params.id} AND b.tahun_id = ${req.params.tahun}
@@ -191,6 +242,29 @@ app.get(`/get-pembayaran-det/:id/:tahun`, (req, res) => {
           : "Rp 0";
     }
     res.status(200).json(result);
+  });
+});
+
+app.get("/get-total-tagihan/:id/:tahun", (req, res) => {
+  const sql = `SELECT COUNT(id) as jml_bulan FROM
+  (SELECT a.*, b.nominal, b.created_date, c.tahun FROM ref_bulan a 
+    LEFT JOIN trans_pembayaran b ON a.id = b.bulan_id AND b.anggota_id = ${req.params.id} AND b.tahun_id = ${req.params.tahun}
+    LEFT JOIN ref_tahun c ON b.tahun_id = c.id
+    ORDER BY a.id) as tbl
+    WHERE tbl.nominal IS NULL`;
+  const sql_stts = `SELECT a.*, b.biaya FROM ref_anggota a
+  JOIN ref_status b ON a.status_id = b.id
+  WHERE a.id = ${req.params.id}`;
+  db.query(sql_stts, (err, result_stts) => {
+    if (err) throw err;
+
+    db.query(sql, (err, result) => {
+      if (err) throw err;
+      let response = result_stts[0].biaya * result[0].jml_bulan;
+      res.json({
+        total_tagihan: response,
+      });
+    });
   });
 });
 
