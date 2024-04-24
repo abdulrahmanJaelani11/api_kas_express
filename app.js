@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(cors());
 
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://bayarkas.vercel.app"); // Ganti dengan domain Vue.js Anda
+  res.header("Access-Control-Allow-Origin", "https://bayarkas.vercel.app/"); // Ganti dengan domain Vue.js Anda
   res.header(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept"
