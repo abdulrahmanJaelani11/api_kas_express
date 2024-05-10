@@ -14,7 +14,7 @@ const hostname = "192.168.230.86";
 app.use(express.json());
 // app.use(cors());
 app.use(cors({
-  origin: 'https://bayarkas.vercel.app/'
+  origin: 'https://bayarkas.vercel.app'
 }));
 
 app.get("/", (req, res) => {
