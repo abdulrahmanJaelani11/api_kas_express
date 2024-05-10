@@ -11,10 +11,10 @@ const fs = require("fs");
 const hostname = "192.168.230.86";
 // const hostname = "localhost";
 
-// app.use(cors({
-//   origin: 'https://bayarkas.vercel.app'
-// }));
-app.use(cors());
+app.use(cors({
+  origin: 'https://bayarkas.vercel.app'
+}));
+// app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
