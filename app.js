@@ -9,19 +9,11 @@ const PDFDocument = require("pdfkit");
 const pdf = require("pdf-creator-node");
 const fs = require("fs");
 const hostname = "192.168.0.135";
+const bodyParser = require("body-parser");
 // const hostname = "localhost";
 
-app.use(express.json());
 app.use(cors());
-
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://bayarkas.vercel.app/"); // Ganti dengan domain Vue.js Anda
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
-  );
-  next();
-});
+app.use(bodyParser.json());
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -75,7 +67,7 @@ app.post("/status", (req, res) => {
 // ANGGOTA
 app.get("/get-anggota", (req, res) => {
   let query =
-    "SELECT a.*, b.status, b.biaya FROM ref_anggota as a LEFT JOIN ref_status as b ON a.status_id = b.id";
+    "SELECT a.*, b.status, b.biaya FROM ref_anggota as a LEFT JOIN ref_status as b ON a.status_id = b.id ORDER BY a.nama ASC";
   db.query(query, (err, results) => {
     if (err) throw err;
     res.json(results);
@@ -112,6 +104,14 @@ app.put("/anggota/:id", (req, res) => {
   db.query(query, values, (err, rasult) => {
     if (err) throw err;
     res.status(201).json({ status: 200, message: "Berhasil mengubah anggota" });
+  });
+});
+
+app.get("/cari-anggota/:keyword", (req, res) => {
+  const sql = `SELECT a.*, b.status, b.biaya FROM ref_anggota as a LEFT JOIN ref_status as b ON a.status_id = b.id WHERE a.nama LIKE  '%${req.params.keyword}%'`;
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+    res.json(results);
   });
 });
 
@@ -189,9 +189,9 @@ app.post("/pembayaran-sekaligus", (req, res) => {
   const query =
     "INSERT INTO trans_pembayaran (anggota_id, tahun_id, bulan_id, tipe_transaksi, nominal, status, created_date, keterangan) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
   let today = moment().format("YYYY-MM-DD HH:mm:ss");
-
   let dt_anggota;
   db.query(sql_cek, (err, result) => {
+    let nominal = tot_tagihan / result.length;
     if (err) throw err;
 
     for (let i = 0; i < result.length; i++) {
@@ -199,8 +199,8 @@ app.post("/pembayaran-sekaligus", (req, res) => {
         parseInt(anggota_id),
         tahun_id,
         result[i].id,
-        "Pemasukan",
-        parseInt(15000),
+        "pemasukan",
+        parseInt(nominal),
         1,
         today,
         "keterangan",
@@ -291,6 +291,31 @@ app.get("/get-riwayat", (req, res) => {
       result[i].created_date = moment(result[i].created_date).format(
         "dddd, D MMMM YYYY"
       );
+    }
+    res.json(result);
+  });
+});
+
+app.post("/get-riwayat-filter", (req, res) => {
+  let filter =
+    req.body.anggota != 0 ? `AND a.anggota_id = '${req.body.anggota}'` : "";
+  const query = `SELECT b.nama as nama_anggota, a.nominal, a.created_date, a.tipe_transaksi, c.bulan, d.tahun
+  FROM trans_pembayaran a 
+  LEFT JOIN ref_anggota b ON a.anggota_id = b.id 
+  LEFT JOIN ref_bulan c ON a.bulan_id = c.id
+  LEFT JOIN ref_tahun d ON a.tahun_id = d.id
+  WHERE a.created_date BETWEEN '${req.body.tgl_awal}' AND '${req.body.tgl_akhir}' ${filter}
+  ORDER BY a.id ASC`;
+  db.query(query, (err, result) => {
+    if (err) throw err;
+    for (let i = 0; i < result.length; i++) {
+      result[i].created_date = moment(result[i].created_date).format(
+        "dddd, D MMMM YYYY"
+      );
+      result[i].nominal = parseInt(result[i].nominal).toLocaleString("id-ID", {
+        style: "currency",
+        currency: "IDR",
+      });
     }
     res.json(result);
   });
