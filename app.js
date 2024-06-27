@@ -75,10 +75,10 @@ app.get("/get-anggota", (req, res) => {
 });
 
 app.post("/anggota", (req, res) => {
-  let { anggota, status } = req.body;
+  let { anggota, status, email, no_telepon } = req.body;
   const query =
-    "INSERT INTO ref_anggota (nama, status_id, active) VALUES (?, ?, ?8)";
-  const values = [anggota, status, 1];
+    "INSERT INTO ref_anggota (nama, status_id, email, no_telepon, active) VALUES (?, ?, ?, ?, ?8)";
+  const values = [anggota, status, email, no_telepon, 1];
   db.query(query, values, (err, results) => {
     if (err) throw err;
     res.status(201).json({
@@ -89,10 +89,21 @@ app.post("/anggota", (req, res) => {
 });
 
 app.get("/get-anggota/:id", (req, res) => {
-  const query = `SELECT * FROM ref_anggota WHERE id = ${req.params.id}`;
+  const query = `SELECT a.*, b.status, b.biaya FROM ref_anggota a LEFT JOIN ref_status b ON a.status_id = b.id WHERE a.id = ${req.params.id}`;
+  let dt_pembayaran = `SELECT a.nominal, a.tipe_transaksi, a.keterangan, a.created_date, b.bulan, c.tahun FROM trans_pembayaran a JOIN ref_bulan b ON a.bulan_id = b.id JOIN ref_tahun c ON a.tahun_id = c.id WHERE a.anggota_id = ${req.params.id}`
   db.query(query, (err, results) => {
     if (err) throw err;
-    res.json(results[0]);
+    db.query(dt_pembayaran, (err, results_pem) => {
+      if(err) throw err
+      let response;
+      response = {
+        nama: results[0].nama,
+        status: results[0].status,
+        biaya: results[0].biaya
+      }
+      response.det_pembayaran = results_pem
+      res.json(response);
+    })
   });
 });
 
@@ -326,7 +337,7 @@ app.get("/get-saldo", (req, res) => {
   const sql = `SELECT tbl.*, (tbl.saldo_pemasukan - tbl.saldo_pengeluaran) as total FROM (
     SELECT
       SUM( nominal ) AS saldo_pemasukan,
-      ( SELECT SUM( nominal ) FROM trans_pembayaran WHERE tipe_transaksi = 'pengeluaran' ) AS saldo_pengeluaran 
+      COALESCE(( SELECT SUM( nominal ) FROM trans_pembayaran WHERE tipe_transaksi = 'pengeluaran' ), 0) AS saldo_pengeluaran
     FROM
       trans_pembayaran 
     WHERE
@@ -564,6 +575,7 @@ app.post(`/ganti-password/:id`, (req, res) => {
   });
 });
 
-app.listen(port, hostname, () => {
+// app.listen(port, hostname, () => {
+app.listen(port, () => {
   console.log(`Server berjalan di http://${hostname}:${port}/`);
 });

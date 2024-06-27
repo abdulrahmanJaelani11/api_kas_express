@@ -1,9 +1,9 @@
 const mysql = require("mysql");
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "kas_app",
+  // host: "localhost",
+  // user: "root",
+  // password: "",
+  // database: "kas_app",
 
   host: "aaj.h.filess.io",
   database: "sicakas_mustvapor",
