@@ -147,7 +147,7 @@ app.get("/get-bulan", (req, res) => {
 // PEMBAYARAN
 
 app.post("/pembayaran", (req, res) => {
-  return res.json(req.body);
+  // return res.json(req.body);
   let { anggota_id, tahun_id, bulan_id, tipe_transaksi, nominal, keterangan } =
     req.body;
   const sql_cek = `SELECT a.nominal, b.nama, c.tahun, d.bulan FROM trans_pembayaran a
